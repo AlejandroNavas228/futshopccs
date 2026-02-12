@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 // Importamos nuestras nuevas piezas "Lego"
 import { supabase } from '@/lib/supabase'; 
 import Navbar from '@/components/Navbar';
+import Hero from '@/components/Hero';
 
 const ADMIN_PWD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD; 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "584120000000";
@@ -116,10 +117,7 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Banner Temporal (Pronto haremos un componente Hero aquí) */}
-        <div className="mb-12 text-center py-16 bg-white rounded-3xl shadow-sm border border-gray-100">
-           <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-4">Nueva Colección 2026</h2>
-           <p className="text-gray-500 max-w-md mx-auto">La mejor indumentaria deportiva con calidad internacional y envíos a todo el país.</p>
-        </div>
+        <Hero />
 
         {/* Grid de Productos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">

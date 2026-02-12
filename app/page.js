@@ -6,7 +6,7 @@ import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import ProductCard from '../components/ProductCard';
 const ADMIN_PWD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD; 
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "584120000000";
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "584142843660";
 
 const TIENDA_CONFIG = {
   nombre: "FUTBOL STORE CCS",

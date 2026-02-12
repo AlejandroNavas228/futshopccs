@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// Importamos nuestras nuevas piezas "Lego"
+// Importamos nuestras piezas
 import { supabase } from '@/lib/supabase'; 
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
+import ProductCard from '@/components/ProductCard';
 
 const ADMIN_PWD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD; 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "584120000000";
@@ -26,6 +27,7 @@ export default function Home() {
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [passInput, setPassInput] = useState("");
 
+  // --- CARGA DE DATOS ---
   useEffect(() => {
     const inicializarTienda = async () => {
       try {
@@ -43,6 +45,7 @@ export default function Home() {
     inicializarTienda();
   }, []);
 
+  // --- UTILIDADES ---
   const formatoPrecio = (precioUSD) => {
     if (moneda === 'USD') return `$${precioUSD}`;
     return `Bs ${(precioUSD * tasaCambio).toFixed(2)}`;
@@ -64,12 +67,11 @@ export default function Home() {
     const totalUSD = calcularTotal();
     const totalBs = (totalUSD * tasaCambio).toFixed(2);
     const lista = carrito.map(p => `▪️ ${p.nombre} ($${p.precio})`).join('\n');
-
     const mensaje = `*PEDIDO WEB* 🛍️\n----------------\n${lista}\n----------------\n💰 Total: $${totalUSD} / Bs ${totalBs}\n(Tasa: ${tasaCambio})`;
     window.open(`https://wa.me/${TIENDA_CONFIG.whatsapp}?text=${encodeURIComponent(mensaje)}`, '_blank');
   };
 
-  // --- LOGICA ADMIN ---
+  // --- FUNCIONES DE ADMIN (RECUPERADAS) ---
   const intentarLogin = (e) => {
     e.preventDefault();
     if (passInput === ADMIN_PWD) {
@@ -81,13 +83,44 @@ export default function Home() {
     }
   };
 
+  const agregarProducto = async () => {
+    const n = document.getElementById('n-nom').value;
+    const p = document.getElementById('n-pre').value;
+    const i = document.getElementById('n-img').value; 
+    
+    if(!n || !p) return alert("Faltan datos");
+
+    const arrayImagenes = i.split(',').map(url => url.trim()).filter(url => url.length > 0);
+
+    const { data, error } = await supabase
+      .from('camisetas')
+      .insert([{ nombre: n, precio: parseInt(p), imagenes: arrayImagenes, stock: true }])
+      .select();
+      
+    if (!error && data) {
+      setProductos([data[0], ...productos]);
+      document.getElementById('n-nom').value = "";
+      document.getElementById('n-pre').value = "";
+      document.getElementById('n-img').value = "";
+      alert("✅ Producto agregado");
+    } else {
+      alert("Error: " + error.message);
+    }
+  };
+
+  const eliminarProductoDB = async (id) => {
+    if (confirm("¿Borrar permanentemente?")) {
+      const { error } = await supabase.from('camisetas').delete().eq('id', id);
+      if (!error) setProductos(productos.filter(p => p.id !== id));
+    }
+  };
+
   // --- RENDERIZADO ---
   if (cargando) return <div className="flex h-screen items-center justify-center font-serif italic">Cargando...</div>;
 
   return (
     <div className="bg-gray-50 min-h-screen pb-32 font-sans text-gray-900 relative">
       
-      {/* 1. USAMOS EL COMPONENTE NAVBAR */}
       <Navbar 
         nombreTienda={TIENDA_CONFIG.nombre}
         carritoCount={carrito.length}
@@ -105,7 +138,7 @@ export default function Home() {
           <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl">
             <h3 className="text-2xl font-serif font-bold text-center mb-6">Acceso Admin</h3>
             <form onSubmit={intentarLogin} className="space-y-4">
-              <input type="password" placeholder="Contraseña" value={passInput} onChange={(e) => setPassInput(e.target.value)} className="w-full p-4 bg-gray-50 rounded-xl text-center outline-none border focus:border-black transition-colors" autoFocus />
+              <input type="password" placeholder="Contraseña" value={passInput} onChange={(e) => setPassInput(e.target.value)} className="w-full p-4 bg-gray-50 rounded-xl text-center outline-none border focus:border-black" autoFocus />
               <button type="submit" className="w-full bg-black text-white py-4 rounded-xl font-bold hover:opacity-90">Entrar</button>
               <button type="button" onClick={() => setMostrarLogin(false)} className="w-full text-gray-400 text-sm hover:text-black">Cancelar</button>
             </form>
@@ -113,37 +146,50 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- AQUÍ VA EL CONTENIDO PRINCIPAL --- */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Banner Temporal (Pronto haremos un componente Hero aquí) */}
-        <Hero />
+      {/* ADMIN PANEL (SOLO VISIBLE SI ES ADMIN) */}
+      {esAdmin && (
+        <div className="max-w-7xl mx-auto px-4 mt-8 animate-slide-down">
+          <div className="p-6 bg-white rounded-2xl border-2 border-black shadow-xl">
+            <h3 className="font-bold mb-4 uppercase text-sm tracking-widest">✨ Nuevo Producto</h3>
+            <div className="space-y-3">
+              <input id="n-nom" placeholder="Nombre del producto" className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-black" />
+              <div className="flex gap-2">
+                  <input id="n-pre" type="number" placeholder="Precio ($)" className="w-1/3 p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-black" />
+                  <input id="n-img" placeholder="Links de imágenes (separados por coma)" className="w-2/3 p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-black" />
+              </div>
+              <button onClick={agregarProducto} className="w-full bg-black text-white py-3 rounded-xl font-bold text-sm hover:opacity-80 transition-all">+ PUBLICAR</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-        {/* Grid de Productos */}
+      <Hero /> 
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        
+        <div className="flex items-center gap-4 mb-12">
+            <h2 className="text-3xl font-serif font-bold">Destacados</h2>
+            <div className="h-px bg-gray-200 flex-1"></div>
+        </div>
+
+        {/* --- AQUÍ ESTÁ EL CAMBIO IMPORTANTE --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {productos.map((prod) => (
-            <div key={prod.id} className="group bg-white rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer">
-              <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
-                {prod.imagenes && prod.imagenes[0] ? (
-                  <img src={prod.imagenes[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-gray-300">Sin imagen</div>
-                )}
-                <button onClick={() => agregarAlCarrito(prod)} className="absolute bottom-4 right-4 bg-white text-black h-10 w-10 rounded-full flex items-center justify-center shadow-lg translate-y-12 group-hover:translate-y-0 transition-transform duration-300 hover:bg-black hover:text-white">
-                  +
-                </button>
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-medium text-gray-900">{prod.nombre}</h3>
-                <p className="mt-1 text-lg font-bold text-gray-900 font-serif">{formatoPrecio(prod.precio)}</p>
-              </div>
-            </div>
+            <ProductCard 
+              key={prod.id}
+              producto={prod}
+              precioFormateado={formatoPrecio(prod.precio)}
+              esAdmin={esAdmin}
+              onAdd={agregarAlCarrito}
+              onDelete={eliminarProductoDB}
+            />
           ))}
         </div>
+        {/* ------------------------------------- */}
 
       </main>
 
-      {/* MODAL CARRITO SIMPLIFICADO */}
+      {/* MODAL CARRITO */}
       {mostrarCarrito && (
         <div className="fixed inset-0 z-50 flex justify-end">
            <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setMostrarCarrito(false)}></div>
